@@ -64,7 +64,7 @@ my $printData;
 my $linesWritten = 0;
 
 my $selParty;
-my $skipRecords     = 10;
+my $skipRecords     = 0;
 my $skippedRecords  = 0;
 
 my $generalCount;
