@@ -29,7 +29,7 @@ no warnings "uninitialized";
 =cut
 
 my $records;
-my $inputFile = "../test-in/2019.nv.VoterList.ElgbVtr-200.CSV";    
+my $inputFile = "../test-in/nv-state-voter-list-20190218-1.CSV";    
 #my $inputFile = "../test-in/2019.nv.VoterList.ElgbVtr.csv";
 #my $inputFile = "../test-in/voter-leans-test.csv";    #
 #my $inputFile = "../test-in/2018-3rd Free List.csv";#
@@ -45,17 +45,23 @@ my $printFileh;
 my $votingFile       = "voting.csv";
 my $votingFileh;
 my %votingLine       = ();
-my %politicalLine    = ();
+my %politicalLine       = ();
+my $voterStatFile    = "../test-in/precinct-voterstat-2019 1st Free List 1.7.19-250-low.csv";
+my $voterStatFileh;
 
 
 my @adPoliticalHash = ();
 my %adPoliticalHash;
 my $adPoliticalHeadings = "";
-my $helpReq         = 0;
-my $maxLines        = "300000";
-my $voteCycle       = "";
-my $fileCount       = 1;
-my $csvHeadings     = "";
+my @voterStatsArray = ();
+my $voterStatHeadings = "";
+my @voterStatHeadings;
+
+my $helpReq            = 0;
+my $maxLines           = "300000";
+my $voteCycle          = "";
+my $fileCount          = 1;
+my $csvHeadings        = "";
 my @csvHeadings;
 my $line1Read       = '';
 my $linesRead       = 0;
@@ -141,19 +147,20 @@ my $baseLine;
 my @baseProfile;
 my $baseHeading = "";
 my @baseHeading = (
-	"act_date",        	"v_status",
-	"cnty_id",         	"state_id",     
-	"precinct",        	"asm_dist",
-	"name_first",      	"name_last",
-	"name_middle",     	"name_suffix",  
+	"status",        	"precinct", 
+  "voter_id",       "state_id",     
+	"asm_dist",       "sen_dist",
+  "name_first",     "name_last",
+	"name_middle",    "name_suffix",  
 	"phone",         	"email",
-	"birth_date",      	"reg_date", 
+  "birth_date",     "reg_date", 
 	"days_reg",  
-	"gender",     		"military",    
-	"party", 			"party_positions",	 
-	"address_1",       	"address_2",
-	"city",            	"state",
-	"zip", 
+	"gender",         "military",    
+	"party", 					"party_positions",	
+	"volunteer",  
+	"address_1",      "address_2",
+	"city",           "state",
+	"zip", 						"strength",
 );
 
 my @votingLine;
@@ -161,7 +168,7 @@ my $votingLine;
 my @votingProfile;
 my $votingHeading = "";
 my @votingHeading = (
-	"voter_id",     "cnty-id",
+	"state_id",     "voter_id",
 	"publish_date", "act_date", 
 	"party",      
 	"election01",   "vote01",  	
@@ -246,6 +253,7 @@ sub main {
 
 	# initialize the precinct-all table
 	adPoliticalAll(@adPoliticalHash);
+	voterStatsLoad(@voterStatsArray);
 
 	# Process loop
 	# Read the entire input and
@@ -280,11 +288,13 @@ sub main {
 	  my $date = localtime->mdy('-');
 		$baseLine{"act_date"}     = $date;
 		$baseLine{"state_id"}     = $csvRowHash{"nv_id"};
-		$baseLine{"cnty_id"}      = $csvRowHash{"cnty_id"};
-		$baseLine{"v_status"}     = $csvRowHash{"status"};
-		$baseLine{'asm_dist'}     = $csvRowHash{"am_dist"};
-	  	$baseLine{"precinct"}     = substr $csvRowHash{"precinct"}, 0, 6;
-    	$baseLine{"name_first"}   = $csvRowHash{"first"};
+		$baseLine{"voter_id"}      = $csvRowHash{"cnty_id"};
+		my $voterid                = $csvRowHash{"cnty_id"};
+		$baseLine{"status"}       = $csvRowHash{"status"};
+		$baseLine{'asm_dist'}     = $csvRowHash{"asm_dist"};
+		$baseLine{'sen_dist'}     = $csvRowHash{"sen_dist"};
+	  $baseLine{"precinct"}     = substr $csvRowHash{"precinct"}, 0, 6;
+    $baseLine{"name_first"}   = $csvRowHash{"first"};
 		$baseLine{"name_middle"}  = $csvRowHash{"middle"};
 		$baseLine{"name_last"}    = $csvRowHash{"last"};
 		$baseLine{"name_suffix"}  = $csvRowHash{"name_suffix"};
@@ -297,11 +307,13 @@ sub main {
 		$baseLine{"zip"}          = $csvRowHash{"zip"};
 		$baseLine{"gender"}       = ""; 
 		$baseLine{"military"}     = "";
-		$baseLine{"party_positions"}     = "";
+		$baseLine{"party_positions"} = "";
 		$baseLine{"volunteer"}    = "";
 		$baseLine{"email"}        = "";
-		$baseLine{"email"}        = "";
-	
+		$baseLine{"strength"}     = "";
+
+		my $stats = binary_search(\@voterStatsArray, $voterid);
+			
 		@date = split( /\s*\/\s*/, $csvRowHash{"birth_date"}, -1 );
 		$mm = sprintf( "%02d", $date[0] );
 		$dd = sprintf( "%02d", $date[1] );
@@ -321,6 +333,7 @@ sub main {
 		$daysRegistered = ( $daysRegistered / (86400) );
 		$daysRegistered = round($daysRegistered);
 		$baseLine{"days_reg"} = int($daysRegistered);
+		$baseLine{"strength"} = "To-be-determined";
 		
 		@baseProfile = ();
 		foreach (@baseHeading) {
@@ -371,251 +384,27 @@ sub printLine  {
 	print $datestring . ' ' . $printData;
 }
 
+# $index = binary_search( \@array, $word )
+#   @array is a list of lowercase strings in alphabetical order.
+#   $word is the target word that might be in the list.
+#   binary_search() returns the array index such that $array[$index]
+#   is $word.	
+sub binary_search {
+    my ($array, $word) = @_;
+    #my ($low, $high) = ( 0, @$array - 1 );
+    my ($low, $high) = ( 0, 248 - 1 );
 
-# routine: evaluateVoter
-# determine if reliable voter by voting pattern over last five cycles
-# tossed out special elections and mock elections
-#  voter reg_date is considered
-#  weights: strong, moderate, weak
-# if registered < 2 years       gen >= 1 and pri <= 0   = NEW
-# if registered > 2 < 4 years   gen >= 1 and pri >= 1   = STRONG
-# if registered > 4 < 8 years   gen >= 2 and pri >= 2   = STRONG
-# if registered > 8 years       gen >= 4 and pri >= 4   = STRONG
-sub evaluateVoter {
-	my $generalPollCount     = 0;
-	my $generalAbsenteeCount = 0;
-	my $generalNotVote       = 0;
-	my $notElegible          = 0;
-	my $primaryPollCount     = 0;
-	my $primaryAbsenteeCount = 0;
-	my $primaryNotVote       = 0;
-	$leansRepCount = 0;
-	$leansDemCount = 0;
-	$leanRep       = 0;
-	$leanDem       = 0;
-	$generalCount  = 0;
-	$primaryCount  = 0;
-	$pollCount     = 0;
-	$absenteeCount = 0;
-	$voterRank     = '';
+    while ( $low <= $high ) {              # While the window is open
+        my $try = int( ($low+$high)/2 );      # Try the middle element
+				my $var = $array->[$try][0];
+        $low  = $try+1, next if $array->[$try][0] lt $word; # Raise bottom
+        $high = $try-1, next if $array->[$try][0] gt $word; # Lower top
 
-	#set first vote in list
-	my $vote = 55;
-	my $cyc;
-	my $daysRegistered = $politicalLine{"days_registered"};
-	for ( my $cycle = 1 ; $cycle < 20 ; $cycle++, $vote += 1 ) {
-		$cyc = $cycle;
-
-		#skip mock election
-		my $h1 = $csvHeadings[$vote];
-		if ( ( $csvHeadings[$vote] ) =~ m/mock/ ) {
-			next;
-		}
-
-		#skip special election
-		if ( ( $csvHeadings[$vote] ) =~ m/special/ ) {
-			next;
-		}
-
-		#skip sparks election
-		if ( ( $csvHeadings[$vote] ) =~ m/sparks/ ) {
-			next;
-		}
-		if ( ( $csvHeadings[$vote] ) =~ m/general/ ) {
-			if ( $csvRowHash{ $csvHeadings[$vote] } eq ' ' ) {
-				$notElegible += 1;
-				next;
-			}
-			if ( $csvRowHash{ $csvHeadings[$vote] } eq ' ' ) {
-				$notElegible += 1;
-				next;
-			}
-			if ( $csvRowHash{ $csvHeadings[$vote] } eq 'N' ) {
-				$generalNotVote += 1;
-				next;
-			}
-			if ( $csvRowHash{ $csvHeadings[$vote] } eq 'V' ) {
-				$generalPollCount += 1;
-				$generalCount     += 1;
-				$pollCount        += 1;
-				next;
-			}
-			if ( $csvRowHash{ $csvHeadings[$vote] } eq 'A' ) {
-				$generalAbsenteeCount += 1;
-				$generalCount         += 1;
-				$absenteeCount        += 1;
-				next;
-			}
-		}
-		if ( ( $csvHeadings[$vote] ) =~ m/primary/ ) {
-			if ( $csvRowHash{ $csvHeadings[$vote] } eq ' ' ) {
-				$notElegible += 1;
-				next;
-			}
-			if ( $csvRowHash{ $csvHeadings[$vote] } eq ' ' ) {
-				$notElegible += 1;
-				next;
-			}
-			if ( $csvRowHash{ $csvHeadings[$vote] } eq 'N' ) {
-				$primaryNotVote += 1;
-				next;
-			}
-			if ( $csvRowHash{ $csvHeadings[$vote] } =~ /V\([A-Z]*\)/ ) {
-				$primaryPollCount += 1;
-				$primaryCount     += 1;
-				$pollCount        += 1;
-				if ( $party ne "DEM" and $party ne "REP" ) {
-					if ( $csvRowHash{ $csvHeadings[$vote] } eq 'V(REP)' ) {
-						$leansRepCount += 1;
-					}
-					if ( $csvRowHash{ $csvHeadings[$vote] } eq 'V(DEM)' ) {
-						$leansDemCount += 1;
-					}
-				}
-				next;
-			}
-			if ( $csvRowHash{ $csvHeadings[$vote] } =~ /A\([A-Z]*\)/ ) {
-				$primaryAbsenteeCount += 1;
-				$primaryCount         += 1;
-				$absenteeCount        += 1;
-				if ( $party ne "DEM" and $party ne "REP" ) {
-					if ( $csvRowHash{ $csvHeadings[$vote] } eq 'A(REP)' ) {
-						$leansRepCount += 1;
-					}
-					if ( $csvRowHash{ $csvHeadings[$vote] } eq 'A(DEM)' ) {
-						$leansDemCount += 1;
-					}
-				}
-				next;
-			}
-		}
-	}
-
-  # Likely voter score:
-   # if registered < 2 years       gen <= 1 || notelig >= 1            = NEW
-   # if registered < 2 years       gen == 1 ||                         = NEW
-   # if registered < 2 years       gen == 2 ||                         = NEW
-
-   # if registered > 2 < 4 years   gen <= 0 || notelig >= 1            = WEAK
-   # if registered > 2 < 4 years   gen >= 2 && pri >= 0                = MODERATE
-   # if registered > 2 < 4 years   gen >= 3 && pri >= 1                = STRONG
-
-   # if registered > 4 < 8 years   gen >= 0 || notelig >= 1            = WEAK
-   # if registered > 4 < 8 years   gen >= 0 && gen <= 2  and pri == 0  = WEAK
-   # if registered > 4 < 8 years   gen >= 2 && gen <= 5  and pri >= 0  = MODERATE
-   # if registered > 4 < 8 years   gen >= 3 && gen <= 12 and pri >= 0  = STRONG
-
-   # if registered > 8 years   gen >= 0 && gen <= 2 || notelig >= 1    = WEAK
-   # if registered > 8 years   gen >= 0 && gen <= 4  and pri == 0      = WEAK
-   # if registered > 8 years   gen >= 3 && gen <= 9  and pri >= 0      = MODERATE
-   # if registered > 8 years   gen >= 6 && gen <= 12 and pri >= 0      = STRONG
-
-	if (3775 < ( 365 * 2 + 1 )) {
-		print "true";
-	}
-	if ($daysRegistered < ( 365 * 2 + 1 ))  {
-		if ( $generalCount <= 1 or $notElegible >= 1 ) {
-			$voterRank = "WEAK";
-		}
-		if ( $generalCount >= 1 ) {
-			$voterRank = "NEW";
-		}
-		if ( $generalCount >= 2 ) {
-			$voterRank = "STRONG";
-		}
-	}
-
-	# if registered > 2 years and < 4 years>
-	if ( $daysRegistered > ( 365 * 2 ) and $daysRegistered < ( 365 * 4 ) ) {
-		if ( $generalCount == 0 or $notElegible >= 1 ) {
-			$voterRank = "WEAK";
-		}
-		if ( $generalCount >= 2 ) {
-			$voterRank = "MODERATE";
-		}
-		if ( $generalCount >= 3 and $primaryCount >= 1 ) {
-			$voterRank = "STRONG";
-		}
-	}
-
-	# if registered > 4 < 8 years   gen gt 4 && pri gt 3   = STRONG
-	if ( $daysRegistered > ( 365 * 4 ) and $daysRegistered < ( 365 * 8 ) ) {
-		if ( $generalCount >= 0 or $notElegible >= 1 ) {
-			$voterRank = "WEAK";
-		}
-		if ( $generalCount >= 1 and $generalCount <= 2 and $primaryCount = 0 ) {
-			$voterRank = "WEAK";
-		}
-		if ( $generalCount >= 2 and $generalCount <= 5 and $primaryCount >= 0 )
-		{
-			$voterRank = "MODERATE";
-		}
-		if ( $generalCount >= 3 and $generalCount <= 12 and $primaryCount >= 0 )
-		{
-			$voterRank = "STRONG";
-		}
-	}
-
-	# if registered > 8 years       gen gt 6 && pri gt 4   = STRONG
-	if ( $daysRegistered > ( 365 * 8 ) ) {
-		if ( $generalCount >= 0 and $generalCount <= 2 or $notElegible >= 1 ) {
-			$voterRank = "WEAK";
-		}
-		if ( $generalCount >= 0 and $generalCount <= 4 and $primaryCount >= 0 )
-		{
-			$voterRank = "WEAK";
-		}
-		if (    $generalCount >= 3
-			and $generalCount <= 9
-			and $primaryCount >= 0 )
-		{
-			$voterRank = "MODERATE";
-		}
-		if ( $generalCount >= 6 and $generalCount <= 12 and $primaryCount >= 0 )
-		{
-			$voterRank = "STRONG";
-		}
-	}
-	#
-	# Set voter strength rating
-	#
-	if ( $party eq 'DEM' ) {
-		if    ( $voterRank eq 'STRONG' )   { $totalSTRDEM++; }
-		elsif ( $voterRank eq 'MODERATE' ) { $totalMODDEM++; }
-		elsif ( $voterRank eq 'WEAK' )     { $totalWEAKDEM++; }
-	}
-
-	elsif ( $party eq 'REP' ) {
-		if    ( $voterRank eq 'STRONG' )   { $totalSTRREP++; }
-		elsif ( $voterRank eq 'MODERATE' ) { $totalMODREP++; }
-		elsif ( $voterRank eq 'WEAK' )     { $totalWEAKREP++; }
-
-	}
-	else {
-		if    ( $voterRank eq 'STRONG' )   { $totalSTROTHR++; }
-		elsif ( $voterRank eq 'MODERATE' ) { $totalMODOTHR++; }
-		elsif ( $voterRank eq 'WEAK' )     { $totalWEAKOTHR++; }
-	}
-
-	if ( $primaryCount != 0 ) {
-		if ( $leansDemCount != 0 ) {
-			if ( $leansDemCount / $primaryCount > .5 ) {
-				$leanDem = 1;
-			}
-		}
-		if ( $leansRepCount != 0 ) {
-			if ( $leansRepCount / $primaryCount > .5 ) {
-				$leanRep = 1;
-			}
-		}
-	}
-	$totalGENERALS  = $totalGENERALS + $generalCount;
-	$totalPRIMARIES = $totalPRIMARIES + $primaryCount;
-	$totalPOLLS     = $totalPOLLS + $pollCount;
-	$totalABSENTEE  = $totalABSENTEE + $absenteeCount;
-	$totalLEANREP   = $totalLEANREP + $leanRep;
-	$totalLEANDEM   = $totalLEANDEM + $leanDem;
+        return $try;     # We've found the word!
+    }
+    return;              # The word isn't there.
 }
+
 
 #
 # open and prime next file
@@ -670,6 +459,29 @@ sub percentage {
 	my $val = $_;
 	return ( sprintf( "%.2f", ( $- * 100 ) ) . "%" . $/ );
 }
+#
+# create the voterstat binary search array
+#
+sub voterStatsLoad() {
+	$voterStatHeadings = "";
+	open( $voterStatFileh, $voterStatFile )
+	  or die "Unable to open INPUT: $voterStatFile Reason: $!";
+	$voterStatHeadings = <$voterStatFileh>;
+	chomp $voterStatHeadings;
+	chop $voterStatHeadings;
+
+	# headings in an array to modify
+	@voterStatHeadings = split( /\s*,\s*/, $voterStatHeadings );
+
+	# Build the UID->survey hash
+	while ( $line1Read = <$voterStatFileh> ) {
+		chomp $line1Read;
+		my @values1 = split( /\s*,\s*/, $line1Read, -1 );
+		push @voterStatsArray , \@values1;
+	}
+	close $voterStatFileh;
+	return @voterStatsArray;
+}
 
 #
 # create the precinct-all hash
@@ -698,60 +510,4 @@ sub adPoliticalAll() {
 	}
 	close $adPoliticalFileh;
 	return @adPoliticalHash;
-}
-
-sub votingLind() {
-		#- - - - - - - - - - - - - - - - - - - - - - - - - - 
-		# Assemble database load  for voting segment
-		#- - - - - - - - - - - - - - - - - - - - - - - - - - 
-		%votingLine = ();
-		$votingLine{"voter_id"}  = $csvRowHash{"voter_id"};
-		$votingLine{"cnty-id"}  = $csvRowHash{"cnty-id"};
-		$votingLine{"party"}     = $csvRowHash{"party"};
-		$votingLine{"actdate"}   = "01/01/01";
-		$votingLine{"election01"}  = substr($csvHeadings[55],3,14);
-		$votingLine{"vote01"}     = $csvRowHash{$csvHeadings[55]};
-		$votingLine{"election02"}  = substr($csvHeadings[56],3,14);
-		$votingLine{"vote02"}     = $csvRowHash{$csvHeadings[56]};
-		$votingLine{"election03"}  = substr($csvHeadings[57],3,14);
-		$votingLine{"vote03"}     = $csvRowHash{$csvHeadings[57]};
-		$votingLine{"election04"}  = substr($csvHeadings[58],3,14);
-		$votingLine{"vote04"}     = $csvRowHash{$csvHeadings[58]};
-		$votingLine{"election05"}  = substr($csvHeadings[59],3,14);
-		$votingLine{"vote05"}     = $csvRowHash{$csvHeadings[59]};
-		$votingLine{"election06"}  = substr($csvHeadings[60],3,14);
-		$votingLine{"vote06"}     = $csvRowHash{$csvHeadings[60]};
-		$votingLine{"election07"}  = substr($csvHeadings[61],3,14);
-		$votingLine{"vote07"}     = $csvRowHash{$csvHeadings[61]};
-		$votingLine{"election08"}  = substr($csvHeadings[62],3,14);
-		$votingLine{"vote08"}     = $csvRowHash{$csvHeadings[62]};
-		$votingLine{"election09"}  = substr($csvHeadings[63],3,14);
-		$votingLine{"vote09"}     = $csvRowHash{$csvHeadings[63]};
-		$votingLine{"election10"}  = substr($csvHeadings[64],3,14);
-		$votingLine{"vote10"}     = $csvRowHash{$csvHeadings[64]};		
-		$votingLine{"election11"}  = substr($csvHeadings[65],3,14);
-		$votingLine{"vote11"}     = $csvRowHash{$csvHeadings[65]};		
-		$votingLine{"election12"}  = substr($csvHeadings[66],3,14);
-		$votingLine{"vote12"}     = $csvRowHash{$csvHeadings[66]};		
-		$votingLine{"election13"}  = substr($csvHeadings[67],3,14);
-		$votingLine{"vote13"}     = $csvRowHash{$csvHeadings[67]};		
-		$votingLine{"election14"}  = substr($csvHeadings[68],3,14);
-		$votingLine{"vote14"}     = $csvRowHash{$csvHeadings[68]};		
-		$votingLine{"election15"}  = substr($csvHeadings[69],3,14);
-		$votingLine{"vote15"}     = $csvRowHash{$csvHeadings[69]};		
-		$votingLine{"election16"}  = substr($csvHeadings[70],3,14);
-		$votingLine{"vote16"}     = $csvRowHash{$csvHeadings[70]};		
-		$votingLine{"election17"}  = substr($csvHeadings[71],3,14);
-		$votingLine{"vote17"}     = $csvRowHash{$csvHeadings[71]};		
-		$votingLine{"election18"}  = substr($csvHeadings[72],3,14);
-		$votingLine{"vote18"}     = $csvRowHash{$csvHeadings[72]};		
-		$votingLine{"election19"}  = substr($csvHeadings[73],3,14);
-		$votingLine{"vote19"}     = $csvRowHash{$csvHeadings[73]};		
-		$votingLine{"election20"}  = substr($csvHeadings[74],3,14);
-		$votingLine{"vote20"}     = $csvRowHash{$csvHeadings[74]};		
-		@votingProfile = ();
-		foreach (@votingHeading) {
-			push( @votingProfile, $votingLine{$_} );
-		}
-		print $votingFileh join( ',', @votingProfile ), "\n";
 }
