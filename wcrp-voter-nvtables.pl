@@ -29,8 +29,8 @@ no warnings "uninitialized";
 =cut
 
 my $records;
-#my $inputFile = "../test-in/2019.nv.VoterList.ElgbVtr-200.CSV";    
-my $inputFile = "../test-in/2019.nv.VoterList.ElgbVtr.csv";
+my $inputFile = "../test-in/2019.nv.VoterList.ElgbVtr-200.CSV";    
+#my $inputFile = "../test-in/2019.nv.VoterList.ElgbVtr.csv";
 #my $inputFile = "../test-in/voter-leans-test.csv";    #
 #my $inputFile = "../test-in/2018-3rd Free List.csv";#
 
@@ -45,23 +45,23 @@ my $printFileh;
 my $votingFile       = "voting.csv";
 my $votingFileh;
 my %votingLine       = ();
-my %politicalLine       = ();
+my %politicalLine    = ();
 
 
 my @adPoliticalHash = ();
 my %adPoliticalHash;
 my $adPoliticalHeadings = "";
-my $helpReq            = 0;
-my $maxLines           = "300000";
-my $voteCycle          = "";
-my $fileCount          = 1;
-my $csvHeadings        = "";
+my $helpReq         = 0;
+my $maxLines        = "300000";
+my $voteCycle       = "";
+my $fileCount       = 1;
+my $csvHeadings     = "";
 my @csvHeadings;
-my $line1Read    = '';
-my $linesRead    = 0;
+my $line1Read       = '';
+my $linesRead       = 0;
 my $linesIncRead    = 0;
 my $printData;
-my $linesWritten = 0;
+my $linesWritten    = 0;
 
 my $selParty;
 my $skipRecords     = 0;
@@ -141,18 +141,18 @@ my $baseLine;
 my @baseProfile;
 my $baseHeading = "";
 my @baseHeading = (
-	"act_date",        "v_status",
-  "cnty_id",         "state_id",     
-	"precinct",        "asm_dist",
-  "name_first",      "name_last",
-	"name_middle",     "name_suffix",  
-	"phone",         	 "email",
-  "birth_date",      "reg_date", 
+	"act_date",        	"v_status",
+	"cnty_id",         	"state_id",     
+	"precinct",        	"asm_dist",
+	"name_first",      	"name_last",
+	"name_middle",     	"name_suffix",  
+	"phone",         	"email",
+	"birth_date",      	"reg_date", 
 	"days_reg",  
-	"gender",          "military",    
-	"party", 					 "party_positions",	 
-	"address_1",       "address_2",
-	"city",            "state",
+	"gender",     		"military",    
+	"party", 			"party_positions",	 
+	"address_1",       	"address_2",
+	"city",            	"state",
 	"zip", 
 );
 
@@ -170,7 +170,7 @@ my @votingHeading = (
 	"election04",	"vote04",
 	"election05",   "vote05",    
 	"election06",	"vote06",
-  "election07", 	"vote07", 	
+  	"election07", 	"vote07", 	
 	"election08",	"vote08",
 	"election09",   "vote09",   
 	"election10",	"vote10",
@@ -283,8 +283,8 @@ sub main {
 		$baseLine{"cnty_id"}      = $csvRowHash{"cnty_id"};
 		$baseLine{"v_status"}     = $csvRowHash{"status"};
 		$baseLine{'asm_dist'}     = $csvRowHash{"am_dist"};
-	  $baseLine{"precinct"}     = substr $csvRowHash{"precinct"}, 0, 6;
-    $baseLine{"name_first"}   = $csvRowHash{"first"};
+	  	$baseLine{"precinct"}     = substr $csvRowHash{"precinct"}, 0, 6;
+    	$baseLine{"name_first"}   = $csvRowHash{"first"};
 		$baseLine{"name_middle"}  = $csvRowHash{"middle"};
 		$baseLine{"name_last"}    = $csvRowHash{"last"};
 		$baseLine{"name_suffix"}  = $csvRowHash{"name_suffix"};
@@ -298,6 +298,8 @@ sub main {
 		$baseLine{"gender"}       = ""; 
 		$baseLine{"military"}     = "";
 		$baseLine{"party_positions"}     = "";
+		$baseLine{"volunteer"}    = "";
+		$baseLine{"email"}        = "";
 		$baseLine{"email"}        = "";
 	
 		@date = split( /\s*\/\s*/, $csvRowHash{"birth_date"}, -1 );
@@ -325,9 +327,9 @@ sub main {
 			push( @baseProfile, $baseLine{$_} );
 		}
 		print $baseFileh join( ',', @baseProfile ), "\n";
-
-
-
+#
+#	here are the political segments.
+#
 	
 		$linesWritten++;
 		#
