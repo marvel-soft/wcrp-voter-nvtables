@@ -255,8 +255,7 @@ sub main {
 	  or die "Unable to open votingFileh: $votingFile Reason: $!";
 	print $votingFileh $votingHeading;
 
-	# initialize the precinct-all table
-	adPoliticalAll(@adPoliticalHash);
+	# initialize the voter stats array
 	voterStatsLoad(@voterStatsArray);
 
 	# Process loop
@@ -309,15 +308,16 @@ sub main {
 		$baseLine{"city"}         = $csvRowHash{"city"};
 		$baseLine{"state"}        = $csvRowHash{"state"};
 		$baseLine{"zip"}          = $csvRowHash{"zip"};
-		$baseLine{"gender"}       = ""; 
-		$baseLine{"military"}     = "";
 		$baseLine{"party_positions"} = "";
 		$baseLine{"volunteer"}    = "";
 		$baseLine{"email"}        = "";
 		$stats = binary_search(\@voterStatsArray, $voterid);
-		$baseLine{"generals"}  = $voterStatsArray[$stats][5];
-		$baseLine{"primaries"}  = $voterStatsArray[$stats][6];
-		$baseLine{"strength"}  = $voterStatsArray[$stats][12];
+		$baseLine{"gender"}       = $voterStatsArray[$stats][13]; 
+		$baseLine{"military"}     = $voterStatsArray[$stats][14];
+		$baseLine{"generals"}     = $voterStatsArray[$stats][5];
+		$baseLine{"primaries"}    = $voterStatsArray[$stats][6];
+		$baseLine{"leans"}        = $voterStatsArray[$stats][11];
+		$baseLine{"strength"}     = $voterStatsArray[$stats][12];
 		@date = split( /\s*\/\s*/, $csvRowHash{"birth_date"}, -1 );
 		$mm = sprintf( "%02d", $date[0] );
 		$dd = sprintf( "%02d", $date[1] );
@@ -329,14 +329,14 @@ sub main {
 		$yy = sprintf( "%02d", $date[2] );
 		#if ($yy <= "30") {$yy = 2000 + $yy}
 		#elsif ($yy > 30) {$yy = 1900 + $yy};
-		$baseLine{"reg_date"}   = "$mm/$dd/$yy";
+		$baseLine{"reg_date"}    = "$mm/$dd/$yy";
 		my $adjustedDate = "$mm/$dd/$yy";
 		my $before = Time::Piece->strptime( $adjustedDate, "%m/%d/%y" );		
 		my $now            = localtime;
 		my $daysRegistered = $now - $before;
 		$daysRegistered = ( $daysRegistered / (86400) );
 		$daysRegistered = round($daysRegistered);
-		$baseLine{"days_reg"} = int($daysRegistered);
+		$baseLine{"days_reg"}     = int($daysRegistered);
 		
 		@baseProfile = ();
 		foreach (@baseHeading) {
