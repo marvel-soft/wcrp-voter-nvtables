@@ -29,7 +29,7 @@ no warnings "uninitialized";
 =cut
 
 my $records;
-my $inputFile = "../test-in/nv-state-voter-list-20190218-1.CSV";    
+my $inputFile = "../test-in/2019.nv.VoterList.ElgbVtr-250-low.csv";    
 #my $inputFile = "../test-in/2019.nv.VoterList.ElgbVtr.csv";
 #my $inputFile = "../test-in/voter-leans-test.csv";    #
 #my $inputFile = "../test-in/2018-3rd Free List.csv";#
@@ -391,8 +391,8 @@ sub printLine  {
 #   is $word.	
 sub binary_search {
     my ($array, $word) = @_;
-    #my ($low, $high) = ( 0, @$array - 1 );
-    my ($low, $high) = ( 0, 248 - 1 );
+    my ($low, $high) = ( 0, @$array - 1 );
+    #my ($low, $high) = ( 0, 248 - 1 );
 
     while ( $low <= $high ) {              # While the window is open
         my $try = int( ($low+$high)/2 );      # Try the middle element
