@@ -30,6 +30,7 @@ no warnings "uninitialized";
 
 my $records;
 my $inputFile = "../test-in/2019.nv.VoterList.ElgbVtr-250-low.csv";    
+#my $inputFile = "../test-in/nv-state-voter-list-20190218-1.CSV";    
 #my $inputFile = "../test-in/2019.nv.VoterList.ElgbVtr.csv";
 #my $inputFile = "../test-in/voter-leans-test.csv";    #
 #my $inputFile = "../test-in/2018-3rd Free List.csv";#
@@ -53,9 +54,11 @@ my $voterStatFileh;
 my @adPoliticalHash = ();
 my %adPoliticalHash;
 my $adPoliticalHeadings = "";
-my @voterStatsArray = ();
+my @voterStatsArray;
+my $voterStatsArray;
 my $voterStatHeadings = "";
 my @voterStatHeadings;
+my $stats;
 
 my $helpReq            = 0;
 my $maxLines           = "300000";
@@ -153,14 +156,15 @@ my @baseHeading = (
   "name_first",     "name_last",
 	"name_middle",    "name_suffix",  
 	"phone",         	"email",
-  "birth_date",     "reg_date", 
-	"days_reg",  
+  "birth_date",     "reg_date",  
 	"gender",         "military",    
-	"party", 					"party_positions",	
-	"volunteer",  
+	"party", 					
+	"party_positions", "volunteer",  
 	"address_1",      "address_2",
 	"city",           "state",
-	"zip", 						"strength",
+	"zip", 			
+	"generals", 			"primaries",			
+  "days_reg",       "strength",
 );
 
 my @votingLine;
@@ -251,8 +255,7 @@ sub main {
 	  or die "Unable to open votingFileh: $votingFile Reason: $!";
 	print $votingFileh $votingHeading;
 
-	# initialize the precinct-all table
-	adPoliticalAll(@adPoliticalHash);
+	# initialize the voter stats array
 	voterStatsLoad(@voterStatsArray);
 
 	# Process loop
@@ -305,15 +308,16 @@ sub main {
 		$baseLine{"city"}         = $csvRowHash{"city"};
 		$baseLine{"state"}        = $csvRowHash{"state"};
 		$baseLine{"zip"}          = $csvRowHash{"zip"};
-		$baseLine{"gender"}       = ""; 
-		$baseLine{"military"}     = "";
 		$baseLine{"party_positions"} = "";
 		$baseLine{"volunteer"}    = "";
 		$baseLine{"email"}        = "";
-		$baseLine{"strength"}     = "";
-
-		my $stats = binary_search(\@voterStatsArray, $voterid);
-			
+		$stats = binary_search(\@voterStatsArray, $voterid);
+		$baseLine{"gender"}       = $voterStatsArray[$stats][13]; 
+		$baseLine{"military"}     = $voterStatsArray[$stats][14];
+		$baseLine{"generals"}     = $voterStatsArray[$stats][5];
+		$baseLine{"primaries"}    = $voterStatsArray[$stats][6];
+		$baseLine{"leans"}        = $voterStatsArray[$stats][11];
+		$baseLine{"strength"}     = $voterStatsArray[$stats][12];
 		@date = split( /\s*\/\s*/, $csvRowHash{"birth_date"}, -1 );
 		$mm = sprintf( "%02d", $date[0] );
 		$dd = sprintf( "%02d", $date[1] );
@@ -325,15 +329,14 @@ sub main {
 		$yy = sprintf( "%02d", $date[2] );
 		#if ($yy <= "30") {$yy = 2000 + $yy}
 		#elsif ($yy > 30) {$yy = 1900 + $yy};
-		$baseLine{"reg_date"}   = "$mm/$dd/$yy";
+		$baseLine{"reg_date"}    = "$mm/$dd/$yy";
 		my $adjustedDate = "$mm/$dd/$yy";
 		my $before = Time::Piece->strptime( $adjustedDate, "%m/%d/%y" );		
 		my $now            = localtime;
 		my $daysRegistered = $now - $before;
 		$daysRegistered = ( $daysRegistered / (86400) );
 		$daysRegistered = round($daysRegistered);
-		$baseLine{"days_reg"} = int($daysRegistered);
-		$baseLine{"strength"} = "To-be-determined";
+		$baseLine{"days_reg"}     = int($daysRegistered);
 		
 		@baseProfile = ();
 		foreach (@baseHeading) {
@@ -392,14 +395,12 @@ sub printLine  {
 sub binary_search {
     my ($array, $word) = @_;
     my ($low, $high) = ( 0, @$array - 1 );
-    #my ($low, $high) = ( 0, 248 - 1 );
-
     while ( $low <= $high ) {              # While the window is open
         my $try = int( ($low+$high)/2 );      # Try the middle element
 				my $var = $array->[$try][0];
-        $low  = $try+1, next if $array->[$try][0] lt $word; # Raise bottom
-        $high = $try-1, next if $array->[$try][0] gt $word; # Lower top
-
+				printLine ("word- $word try- $try var- $var");
+        $low  = $try+1, next if $array->[$try][0] < $word; # Raise bottom
+        $high = $try-1, next if $array->[$try][0] > $word; # Lower top
         return $try;     # We've found the word!
     }
     return;              # The word isn't there.
@@ -481,33 +482,4 @@ sub voterStatsLoad() {
 	}
 	close $voterStatFileh;
 	return @voterStatsArray;
-}
-
-#
-# create the precinct-all hash
-#
-sub adPoliticalAll() {
-	$adPoliticalHeadings = "";
-	my @adPoliticalHeadings;
-	open( my $adPoliticalFileh, $adPoliticalFile )
-	  or die "Unable to open INPUT: $adPoliticalFile Reason: $!";
-	$adPoliticalHeadings = <$adPoliticalFileh>;
-	chomp $adPoliticalHeadings;
-	chop $adPoliticalHeadings;
-
-	# headings in an array to modify
-	@adPoliticalHeadings = split( /\s*,\s*/, $adPoliticalHeadings );
-
-	# Build the UID->survey hash
-	while ( $line1Read = <$adPoliticalFileh> ) {
-		chomp $line1Read;
-		my @values1 = split( /\s*,\s*/, $line1Read, -1 );
-
-		# Create hashes of line for searches
-		@adPoliticalHash{@adPoliticalHeadings} = @values1;
-		my $PRECINCT = $adPoliticalHash{"PRECINCT"};
-		@adPoliticalHash{ $adPoliticalHash{"PRECINCT"} } = \@values1;
-	}
-	close $adPoliticalFileh;
-	return @adPoliticalHash;
 }
