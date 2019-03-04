@@ -47,7 +47,9 @@ my $votingFile       = "voting.csv";
 my $votingFileh;
 my %votingLine       = ();
 my %politicalLine       = ();
-my $voterStatFile    = "../test-in/precinct-voterstat-2019 1st Free List 1.7.19-250-low.csv";
+#my $voterStatFile    = "../test-in/precinct-voterstat-2019 1st Free List 1.7.19-250-low.csv";
+my $voterStatFile    = "county.csv";
+#my $voterStatFile    = "precinct-voterstat-2019 1st Free List 1.7.19.csv";
 my $voterStatFileh;
 
 
@@ -311,13 +313,7 @@ sub main {
 		$baseLine{"party_positions"} = "";
 		$baseLine{"volunteer"}    = "";
 		$baseLine{"email"}        = "";
-		$stats = binary_search(\@voterStatsArray, $voterid);
-		$baseLine{"gender"}       = $voterStatsArray[$stats][13]; 
-		$baseLine{"military"}     = $voterStatsArray[$stats][14];
-		$baseLine{"generals"}     = $voterStatsArray[$stats][5];
-		$baseLine{"primaries"}    = $voterStatsArray[$stats][6];
-		$baseLine{"leans"}        = $voterStatsArray[$stats][11];
-		$baseLine{"strength"}     = $voterStatsArray[$stats][12];
+	
 		@date = split( /\s*\/\s*/, $csvRowHash{"birth_date"}, -1 );
 		$mm = sprintf( "%02d", $date[0] );
 		$dd = sprintf( "%02d", $date[1] );
@@ -337,6 +333,19 @@ sub main {
 		$daysRegistered = ( $daysRegistered / (86400) );
 		$daysRegistered = round($daysRegistered);
 		$baseLine{"days_reg"}     = int($daysRegistered);
+			
+		$stats = binary_search(\@voterStatsArray, $voterid);
+		if ($stats != 0) {
+	  	$baseLine{"gender"}       = $voterStatsArray[$stats][13]; 
+			my $mil = $voterStatsArray[$stats][14];
+			chop $mil;
+			$baseLine{"military"}     = $mil;
+			$baseLine{"generals"}     = $voterStatsArray[$stats][5];
+			$baseLine{"primaries"}    = $voterStatsArray[$stats][6];
+			$baseLine{"leans"}        = $voterStatsArray[$stats][11];
+			$baseLine{"strength"}     = $voterStatsArray[$stats][12];
+		}
+	
 		
 		@baseProfile = ();
 		foreach (@baseHeading) {
@@ -398,7 +407,6 @@ sub binary_search {
     while ( $low <= $high ) {              # While the window is open
         my $try = int( ($low+$high)/2 );      # Try the middle element
 				my $var = $array->[$try][0];
-				printLine ("word- $word try- $try var- $var");
         $low  = $try+1, next if $array->[$try][0] < $word; # Raise bottom
         $high = $try-1, next if $array->[$try][0] > $word; # Lower top
         return $try;     # We've found the word!
