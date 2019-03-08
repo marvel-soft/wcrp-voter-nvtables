@@ -161,6 +161,7 @@ my @baseHeading = (
   "Birth Date",     "Reg Date",  
 	"Party", 					
 	"Party Positions", "Volunteer",  
+	"Contact Points",
 	"Address 1",      "Address 2",
 	"City",           "State",
 	"Zip", 			
