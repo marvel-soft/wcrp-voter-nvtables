@@ -154,7 +154,7 @@ my $baseHeading = "";
 my @baseHeading = (
 	"Status",        	"Precinct", 
   "Voter ID",       "State ID",     
-	"Asm dist",       "Sen_dist",
+	"Asm dist",       "Sen dist",
   "First",          "Last",
 	"Middle",         "Suffix",  
 	"Phone",         	"email",
@@ -300,15 +300,25 @@ sub main {
 		$baseLine{'Asm dist'}     = $csvRowHash{"asm_dist"};
 		$baseLine{'Sen dist'}     = $csvRowHash{"sen_dist"};
 	  $baseLine{"Precinct"}     = substr $csvRowHash{"precinct"}, 0, 6;
-    $baseLine{"First"}        = $csvRowHash{"first"};
-		$baseLine{"Middle"}       = $csvRowHash{"middle"};
-		$baseLine{"Last"}         = $csvRowHash{"last"};
+    my $UCword                = $csvRowHash{"first"};
+		$UCword  =~ s/(\w+)/\u\L$1/g;
+	  $baseLine{"First"}        = $UCword; 
+    $UCword                = $csvRowHash{"middle"};
+		$UCword  =~ s/(\w+)/\u\L$1/g;
+		$baseLine{"Middle"}       = $UCword;;
+    $UCword                = $csvRowHash{"first"};
+		$UCword  =~ s/(\w+)/\u\L$1/g;
+		$baseLine{"Last"}         = $UCword;
+		$UCword  =~ s/(\w+)/\u\L$1/g;
 		$baseLine{"Suffix"}       = $csvRowHash{"name_suffix"};
 		$baseLine{"Party"}        = $csvRowHash{"party"};
 		$baseLine{"Phone"}        = $csvRowHash{"phone"};
-		$baseLine{"Address 1"}    = $csvRowHash{"address"};
-		$baseLine{"Address 2"}    = $csvRowHash{"address_2"};
-		$baseLine{"City"}         = $csvRowHash{"city"};
+		$UCword                   = $csvRowHash{"address"};
+		$UCword  =~ s/(\w+)/\u\L$1/g;
+		$baseLine{"Address 1"}    = $UCword;
+		$UCword                   = $csvRowHash{"city"};
+		$UCword  =~ s/(\w+)/\u\L$1/g;
+		$baseLine{"City"}         = $UCword;
 		$baseLine{"State"}        = $csvRowHash{"state"};
 		$baseLine{"Zip"}          = $csvRowHash{"zip"};
 		$baseLine{"Party Positions"} = "";
@@ -389,6 +399,7 @@ close($baseFileh);
 close($votingFileh);
 close($printFileh);
 exit;
+
 
 #
 # Print report line
