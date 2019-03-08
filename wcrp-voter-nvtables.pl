@@ -152,21 +152,23 @@ my $baseLine;
 my @baseProfile;
 my $baseHeading = "";
 my @baseHeading = (
-	"status",        	"precinct", 
-  "voter_id",       "state_id",     
-	"asm_dist",       "sen_dist",
-  "name_first",     "name_last",
-	"name_middle",    "name_suffix",  
-	"phone",         	"email",
-  "birth_date",     "reg_date",  
-	"gender",         "military",    
-	"party", 					
-	"party_positions", "volunteer",  
-	"address_1",      "address_2",
-	"city",           "state",
-	"zip", 			
-	"generals", 			"primaries",			
-  "days_reg",       "strength",
+	"Status",        	"Precinct", 
+  "Voter ID",       "State ID",     
+	"Asm dist",       "Sen_dist",
+  "First",          "Last",
+	"Middle",         "Suffix",  
+	"Phone",         	"email",
+  "Birth Date",     "Reg Date",  
+	"Party", 					
+	"Party Positions", "Volunteer",  
+	"Address 1",      "Address 2",
+	"City",           "State",
+	"Zip", 			
+	"Reg Date Orig",  "Days Totl Reg",
+	"Age",
+	"Gender",         "Military",    
+	"Generals", 			"Primaries",			
+	"Leans",          "Strength",
 );
 
 my @votingLine;
@@ -175,7 +177,7 @@ my @votingProfile;
 my $votingHeading = "";
 my @votingHeading = (
 	"state_id",     "voter_id",
-	"publish_date", "act_date", 
+	"publish_date", 
 	"party",      
 	"election01",   "vote01",  	
 	"election02",	"vote02",
@@ -183,7 +185,7 @@ my @votingHeading = (
 	"election04",	"vote04",
 	"election05",   "vote05",    
 	"election06",	"vote06",
-  	"election07", 	"vote07", 	
+  "election07", 	"vote07", 	
 	"election08",	"vote08",
 	"election09",   "vote09",   
 	"election10",	"vote10",
@@ -291,59 +293,61 @@ sub main {
 		#- - - - - - - - - - - - - - - - - - - - - - - - - - 
 		%baseLine = ();
 	  my $date = localtime->mdy('-');
-		$baseLine{"act_date"}     = $date;
-		$baseLine{"state_id"}     = $csvRowHash{"nv_id"};
-		$baseLine{"voter_id"}      = $csvRowHash{"cnty_id"};
-		my $voterid                = $csvRowHash{"cnty_id"};
-		$baseLine{"status"}       = $csvRowHash{"status"};
-		$baseLine{'asm_dist'}     = $csvRowHash{"asm_dist"};
-		$baseLine{'sen_dist'}     = $csvRowHash{"sen_dist"};
-	  $baseLine{"precinct"}     = substr $csvRowHash{"precinct"}, 0, 6;
-    $baseLine{"name_first"}   = $csvRowHash{"first"};
-		$baseLine{"name_middle"}  = $csvRowHash{"middle"};
-		$baseLine{"name_last"}    = $csvRowHash{"last"};
-		$baseLine{"name_suffix"}  = $csvRowHash{"name_suffix"};
-		$baseLine{"party"}        = $csvRowHash{"party"};
-		$baseLine{"phone"}        = $csvRowHash{"phone"};
-		$baseLine{"address_1"}    = $csvRowHash{"address"};
-		$baseLine{"address_2"}    = $csvRowHash{"address_2"};
-		$baseLine{"city"}         = $csvRowHash{"city"};
-		$baseLine{"state"}        = $csvRowHash{"state"};
-		$baseLine{"zip"}          = $csvRowHash{"zip"};
-		$baseLine{"party_positions"} = "";
-		$baseLine{"volunteer"}    = "";
+		$baseLine{"State ID"}     = $csvRowHash{"nv_id"};
+		$baseLine{"Voter ID"}     = $csvRowHash{"cnty_id"};
+		my $voterid               = $csvRowHash{"cnty_id"};
+		$baseLine{"Status"}       = $csvRowHash{"status"};
+		$baseLine{'Asm dist'}     = $csvRowHash{"asm_dist"};
+		$baseLine{'Sen dist'}     = $csvRowHash{"sen_dist"};
+	  $baseLine{"Precinct"}     = substr $csvRowHash{"precinct"}, 0, 6;
+    $baseLine{"First"}        = $csvRowHash{"first"};
+		$baseLine{"Middle"}       = $csvRowHash{"middle"};
+		$baseLine{"Last"}         = $csvRowHash{"last"};
+		$baseLine{"Suffix"}       = $csvRowHash{"name_suffix"};
+		$baseLine{"Party"}        = $csvRowHash{"party"};
+		$baseLine{"Phone"}        = $csvRowHash{"phone"};
+		$baseLine{"Address 1"}    = $csvRowHash{"address"};
+		$baseLine{"Address 2"}    = $csvRowHash{"address_2"};
+		$baseLine{"City"}         = $csvRowHash{"city"};
+		$baseLine{"State"}        = $csvRowHash{"state"};
+		$baseLine{"Zip"}          = $csvRowHash{"zip"};
+		$baseLine{"Party Positions"} = "";
+		$baseLine{"Volunteer"}    = "";
 		$baseLine{"email"}        = "";
 	
 		@date = split( /\s*\/\s*/, $csvRowHash{"birth_date"}, -1 );
 		$mm = sprintf( "%02d", $date[0] );
 		$dd = sprintf( "%02d", $date[1] );
 		$yy = sprintf( "%02d", $date[2] );
-		$baseLine{"birth_date"}   = "$mm/$dd/$yy";
+		$baseLine{"Birth Date"}   = "$mm/$dd/$yy";
 		@date = split( /\s*\/\s*/, $csvRowHash{"reg_date"}, -1 );
 		$mm = sprintf( "%02d", $date[0] );
 		$dd = sprintf( "%02d", $date[1] );
 		$yy = sprintf( "%02d", $date[2] );
 		#if ($yy <= "30") {$yy = 2000 + $yy}
 		#elsif ($yy > 30) {$yy = 1900 + $yy};
-		$baseLine{"reg_date"}    = "$mm/$dd/$yy";
+		$baseLine{"Reg Date"}    = "$mm/$dd/$yy";
 		my $adjustedDate = "$mm/$dd/$yy";
 		my $before = Time::Piece->strptime( $adjustedDate, "%m/%d/%y" );		
 		my $now            = localtime;
 		my $daysRegistered = $now - $before;
 		$daysRegistered = ( $daysRegistered / (86400) );
 		$daysRegistered = round($daysRegistered);
-		$baseLine{"days_reg"}     = int($daysRegistered);
+		$baseLine{"Days Reg"}     = int($daysRegistered);
 			
 		$stats = binary_search(\@voterStatsArray, $voterid);
-		if ($stats != 0) {
-	  	$baseLine{"gender"}       = $voterStatsArray[$stats][13]; 
-			my $mil = $voterStatsArray[$stats][14];
-			chop $mil;
-			$baseLine{"military"}     = $mil;
-			$baseLine{"generals"}     = $voterStatsArray[$stats][5];
-			$baseLine{"primaries"}    = $voterStatsArray[$stats][6];
-			$baseLine{"leans"}        = $voterStatsArray[$stats][11];
-			$baseLine{"strength"}     = $voterStatsArray[$stats][12];
+		if ($stats >= 0) {
+	  	$baseLine{"Gender"}       = $voterStatsArray[$stats][15]; 
+			my $mil = $voterStatsArray[$stats][16];
+			#chop $mil;
+			$baseLine{"Military"}     = $mil;
+			$baseLine{"Generals"}     = $voterStatsArray[$stats][7];
+			$baseLine{"Primaries"}    = $voterStatsArray[$stats][8];
+			$baseLine{"Leans"}        = $voterStatsArray[$stats][13];
+			$baseLine{"Strength"}     = $voterStatsArray[$stats][14];
+			$baseLine{"Reg Date Orig"}  = $voterStatsArray[$stats][4];
+			$baseLine{"Days Totl Reg"}  = $voterStatsArray[$stats][5];
+			$baseLine{"Age"}          = $voterStatsArray[$stats][6];
 		}
 	
 		
@@ -402,15 +406,17 @@ sub printLine  {
 #   binary_search() returns the array index such that $array[$index]
 #   is $word.	
 sub binary_search {
+	  my ($try, $var);
     my ($array, $word) = @_;
     my ($low, $high) = ( 0, @$array - 1 );
     while ( $low <= $high ) {              # While the window is open
-        my $try = int( ($low+$high)/2 );      # Try the middle element
-				my $var = $array->[$try][0];
+        $try = int( ($low+$high)/2 );      # Try the middle element
+				$var = $array->[$try][0];
         $low  = $try+1, next if $array->[$try][0] < $word; # Raise bottom
         $high = $try-1, next if $array->[$try][0] > $word; # Lower top
         return $try;     # We've found the word!
     }
+		$try = -1;
     return;              # The word isn't there.
 }
 
