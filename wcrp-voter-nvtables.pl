@@ -29,9 +29,9 @@ no warnings "uninitialized";
 =cut
 
 my $records;
-my $inputFile = "../test-in/2019.nv.VoterList.ElgbVtr-250-low.csv";    
+#my $inputFile = "../test-in/2019.nv.VoterList.ElgbVtr-250-low.csv";    
 #my $inputFile = "../test-in/nv-state-voter-list-20190218-1.CSV";    
-#my $inputFile = "../test-in/2019.nv.VoterList.ElgbVtr.csv";
+my $inputFile = "../prod-in/2019.nv.VoterList.ElgbVtr-1.csv";
 #my $inputFile = "../test-in/voter-leans-test.csv";    #
 #my $inputFile = "../test-in/2018-3rd Free List.csv";#
 
@@ -47,15 +47,19 @@ my $votingFile       = "voting.csv";
 my $votingFileh;
 my %votingLine       = ();
 my %politicalLine       = ();
-#my $voterStatFile    = "../test-in/precinct-voterstat-2019 1st Free List 1.7.19-250-low.csv";
-my $voterStatFile    = "county.csv";
-#my $voterStatFile    = "precinct-voterstat-2019 1st Free List 1.7.19.csv";
-my $voterStatFileh;
+#my $voterStatsFile    = "../test-in/precinct-voterstat-2019 1st Free List 1.7.19-250-low.csv";
+my $voterStatsFile    = "county.csv";
+#my $voterStatsFile    = "precinct-voterstat-2019 1st Free List 1.7.19.csv";
+my $voterStatsFileh;
+my $voterEmailFile    = "email-sort.csv";
+my $voterEmailFileh;
 
 
 my @adPoliticalHash = ();
 my %adPoliticalHash;
 my $adPoliticalHeadings = "";
+my @voterEmailArray;
+my $voterEmailArray;
 my @voterStatsArray;
 my $voterStatsArray;
 my $voterStatHeadings = "";
@@ -73,6 +77,7 @@ my $linesRead       = 0;
 my $linesIncRead    = 0;
 my $printData;
 my $linesWritten    = 0;
+my $emailAdded      = 0;
 
 my $selParty;
 my $skipRecords     = 0;
@@ -262,6 +267,7 @@ sub main {
 
 	# initialize the voter stats array
 	voterStatsLoad(@voterStatsArray);
+	voterEmailLoad(@voterEmailArray);
 
 	# Process loop
 	# Read the entire input and
@@ -304,12 +310,15 @@ sub main {
     my $UCword                = $csvRowHash{"first"};
 		$UCword  =~ s/(\w+)/\u\L$1/g;
 	  $baseLine{"First"}        = $UCword; 
-    $UCword                = $csvRowHash{"middle"};
+		my $ccfirstName = $UCword;
+
+    $UCword                   = $csvRowHash{"middle"};
 		$UCword  =~ s/(\w+)/\u\L$1/g;
 		$baseLine{"Middle"}       = $UCword;;
-    $UCword                = $csvRowHash{"first"};
+    $UCword                   = $csvRowHash{"last"};
 		$UCword  =~ s/(\w+)/\u\L$1/g;
 		$baseLine{"Last"}         = $UCword;
+		my $cclastName = $UCword;
 		$UCword  =~ s/(\w+)/\u\L$1/g;
 		$baseLine{"Suffix"}       = $csvRowHash{"name_suffix"};
 		$baseLine{"Party"}        = $csvRowHash{"party"};
@@ -345,7 +354,9 @@ sub main {
 		$daysRegistered = ( $daysRegistered / (86400) );
 		$daysRegistered = round($daysRegistered);
 		$baseLine{"Days Reg"}     = int($daysRegistered);
-			
+		#
+		#  locate county data
+		#	
 		$stats = binary_search(\@voterStatsArray, $voterid);
 		if ($stats >= 0) {
 	  	$baseLine{"Gender"}       = $voterStatsArray[$stats][15]; 
@@ -359,6 +370,29 @@ sub main {
 			$baseLine{"Reg Date Orig"}  = $voterStatsArray[$stats][4];
 			$baseLine{"Days Totl Reg"}  = $voterStatsArray[$stats][5];
 			$baseLine{"Age"}          = $voterStatsArray[$stats][6];
+		}
+		#
+		#  locate email address
+		#  "Last", "First", "Middle","Phone","email","Address", "City","Contact Points",
+		#     0       1         2                4      5          6          7
+		my $calastName;
+    my $cafirstName;
+    my $caemail;
+    my $capoints;
+		$stats = binary_ch_search(\@voterEmailArray, $cclastName);
+		if ($stats >= 0) {
+	  	if ( $voterEmailArray[$stats][0] eq $cclastName && 
+			     $voterEmailArray[$stats][1] eq $ccfirstName) {
+    			 	$calastName = $voterEmailArray[$stats][0];
+    				$cafirstName = $voterEmailArray[$stats][1];
+    				$caemail = $voterEmailArray[$stats][4];
+ 		 				$baseLine{"email"}          = $voterEmailArray[$stats][4];
+ 		 				$capoints = $voterEmailArray[$stats][7];
+						$capoints =~ s/;/,/g;
+						$baseLine{"Contact Points"} =~ s/;/,/g;
+        		printLine (" email added: $calastName $caemail \n");
+						$emailAdded = $emailAdded + 1;
+				} 
 		}
 	
 		
@@ -393,6 +427,7 @@ printLine ("<===> Completed transformation of: $inputFile \n");
 printLine ("<===> BASE      SEGMENTS available in file: $baseFile \n");
 printLine ("<===> VOTING    SEGMENTS available in file: $votingFile \n");
 printLine ("<===> Total Records Read: $linesRead \n");
+printLine ("<===> Total Emails added: $emailAdded \n");
 printLine ("<===> Total Records written: $linesWritten \n");
 
 close(INPUT);
@@ -426,6 +461,23 @@ sub binary_search {
 				$var = $array->[$try][0];
         $low  = $try+1, next if $array->[$try][0] < $word; # Raise bottom
         $high = $try-1, next if $array->[$try][0] > $word; # Lower top
+        return $try;     # We've found the word!
+    }
+		$try = -1;
+    return;              # The word isn't there.
+}
+#
+# binay search for character strings
+#
+sub binary_ch_search {
+	  my ($try, $var);
+    my ($array, $word) = @_;
+    my ($low, $high) = ( 0, @$array - 1 );
+    while ( $low <= $high ) {              # While the window is open
+        $try = int( ($low+$high)/2 );      # Try the middle element
+				$var = $array->[$try][0];
+        $low  = $try+1, next if $array->[$try][0] lt $word; # Raise bottom
+        $high = $try-1, next if $array->[$try][0] gt $word; # Lower top
         return $try;     # We've found the word!
     }
 		$try = -1;
@@ -487,25 +539,51 @@ sub percentage {
 	return ( sprintf( "%.2f", ( $- * 100 ) ) . "%" . $/ );
 }
 #
-# create the voterstat binary search array
+# create the voter stats binary search array
 #
 sub voterStatsLoad() {
-	$voterStatHeadings = "";
-	open( $voterStatFileh, $voterStatFile )
-	  or die "Unable to open INPUT: $voterStatFile Reason: $!";
-	$voterStatHeadings = <$voterStatFileh>;
-	chomp $voterStatHeadings;
-	chop $voterStatHeadings;
+	$voterStatsHeadings = "";
+	open( $voterStatsFileh, $voterStatsFile )
+	  or die "Unable to open INPUT: $voterStatsFile Reason: $!";
+	$voterStatsHeadings = <$voterStatsFileh>;
+	chomp $voterStatsHeadings;
+	chop $voterStatsHeadings;
 
 	# headings in an array to modify
-	@voterStatHeadings = split( /\s*,\s*/, $voterStatHeadings );
+	@voterStatsHeadings = split( /\s*,\s*/, $voterStatsHeadings );
 
 	# Build the UID->survey hash
-	while ( $line1Read = <$voterStatFileh> ) {
+	while ( $line1Read = <$voterStatsFileh> ) {
 		chomp $line1Read;
 		my @values1 = split( /\s*,\s*/, $line1Read, -1 );
-		push @voterStatsArray , \@values1;
+		push @voterStatssArray , \@values1;
 	}
-	close $voterStatFileh;
-	return @voterStatsArray;
+	close $voterStatsFileh;
+	return @voterStatssArray;
+}
+
+#
+# create the voter email binary search array
+#
+sub voterEmailLoad() {
+	$voterEmailHeadings = "";
+	open( $voterEmailFileh, $voterEmailFile )
+	  or die "Unable to open INPUT: $voterEmailFile Reason: $!";
+	$voterEmailHeadings = <$voterEmailFileh>;
+	chomp $voterEmailHeadings;
+	chop $voterEmailHeadings;
+
+	# headings in an array to modify
+	@voterEmailHeadings = split( /\s*,\s*/, $voterEmailHeadings );
+  my $emailCount;
+	# Build the UID->survey hash
+	while ( $line1Read = <$voterEmailFileh> ) {
+		chomp $line1Read;
+		my @values1 = split( /\s*,\s*/, $line1Read, -1 );
+		push @voterEmailArray , \@values1;
+		$emailCount = $emailCount + 1;
+	}
+	close $voterEmailFileh;
+	printLine("email array: $emailCount");
+	return @voterEmailArray;
 }
