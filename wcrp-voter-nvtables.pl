@@ -47,11 +47,10 @@ my $votingFile       = "voting.csv";
 my $votingFileh;
 my %votingLine       = ();
 my %politicalLine       = ();
-#my $voterStatsFile    = "../test-in/precinct-voterstat-2019 1st Free List 1.7.19-250-low.csv";
-my $voterStatsFile    = "county.csv";
-#my $voterStatsFile    = "precinct-voterstat-2019 1st Free List 1.7.19.csv";
+#my $voterStatsFile    = "../prod-in/precinct-voterstat.csv";
+my $voterStatsFile    = "precinct-voterstat-250-low.csv";
 my $voterStatsFileh;
-my $voterEmailFile    = "email-sort.csv";
+my $voterEmailFile    = "../prod-in/email-sort.csv";
 my $voterEmailFileh;
 
 
@@ -62,8 +61,8 @@ my @voterEmailArray;
 my $voterEmailArray;
 my @voterStatsArray;
 my $voterStatsArray;
-my $voterStatHeadings = "";
-my @voterStatHeadings;
+my $voterStatsHeadings = "";
+my @voterStatsHeadings;
 my $stats;
 
 my $helpReq            = 0;
@@ -78,6 +77,7 @@ my $linesIncRead    = 0;
 my $printData;
 my $linesWritten    = 0;
 my $emailAdded      = 0;
+my $statsAdded      = 0;
 
 my $selParty;
 my $skipRecords     = 0;
@@ -157,8 +157,9 @@ my $baseLine;
 my @baseProfile;
 my $baseHeading = "";
 my @baseHeading = (
+  "_key",
+	"Voter ID",       "State ID",     
 	"Status",        	"Precinct", 
-  "Voter ID",       "State ID",     
 	"Asm dist",       "Sen dist",
   "First",          "Last",
 	"Middle",         "Suffix",  
@@ -266,8 +267,8 @@ sub main {
 	print $votingFileh $votingHeading;
 
 	# initialize the voter stats array
-	voterStatsLoad(@voterStatsArray);
 	voterEmailLoad(@voterEmailArray);
+	voterStatsLoad(@voterStatsArray);
 
 	# Process loop
 	# Read the entire input and
@@ -370,6 +371,7 @@ sub main {
 			$baseLine{"Reg Date Orig"}  = $voterStatsArray[$stats][4];
 			$baseLine{"Days Totl Reg"}  = $voterStatsArray[$stats][5];
 			$baseLine{"Age"}          = $voterStatsArray[$stats][6];
+			$statsAdded = $statsAdded + 1;
 		}
 		#
 		#  locate email address
@@ -383,7 +385,7 @@ sub main {
 		if ($stats >= 0) {
 	  	if ( $voterEmailArray[$stats][0] eq $cclastName && 
 			     $voterEmailArray[$stats][1] eq $ccfirstName) {
-    			 	$calastName = $voterEmailArray[$stats][0];
+    			 	$calastName = $voterEmailArray[$stats][0];	
     				$cafirstName = $voterEmailArray[$stats][1];
     				$caemail = $voterEmailArray[$stats][4];
  		 				$baseLine{"email"}          = $voterEmailArray[$stats][4];
@@ -428,6 +430,7 @@ printLine ("<===> BASE      SEGMENTS available in file: $baseFile \n");
 printLine ("<===> VOTING    SEGMENTS available in file: $votingFile \n");
 printLine ("<===> Total Records Read: $linesRead \n");
 printLine ("<===> Total Emails added: $emailAdded \n");
+printLine ("<===> Total Stats  added: $statsAdded \n");
 printLine ("<===> Total Records written: $linesWritten \n");
 
 close(INPUT);
@@ -547,7 +550,7 @@ sub voterStatsLoad() {
 	  or die "Unable to open INPUT: $voterStatsFile Reason: $!";
 	$voterStatsHeadings = <$voterStatsFileh>;
 	chomp $voterStatsHeadings;
-	chop $voterStatsHeadings;
+	#chop $voterStatsHeadings;
 
 	# headings in an array to modify
 	@voterStatsHeadings = split( /\s*,\s*/, $voterStatsHeadings );
@@ -556,10 +559,10 @@ sub voterStatsLoad() {
 	while ( $line1Read = <$voterStatsFileh> ) {
 		chomp $line1Read;
 		my @values1 = split( /\s*,\s*/, $line1Read, -1 );
-		push @voterStatssArray , \@values1;
+		push @voterStatsArray , \@values1;
 	}
 	close $voterStatsFileh;
-	return @voterStatssArray;
+	return @voterStatsArray;
 }
 
 #
