@@ -29,13 +29,17 @@ no warnings "uninitialized";
 =cut
 
 my $records;
-#my $inputFile = "../test-in/2019.nv.VoterList.ElgbVtr-250-low.csv";    
-#my $inputFile = "../test-in/nv-state-voter-list-20190218-1.CSV";    
-my $inputFile = "../prod-in/2019.nv.VoterList.ElgbVtr-1.csv";
-#my $inputFile = "../test-in/voter-leans-test.csv";    #
-#my $inputFile = "../test-in/2018-3rd Free List.csv";#
-
-my $adPoliticalFile = "../test-in/adall-precincts-jul.csv";
+#my $inputFile 				= "../test-in/2019.nv.VoterList.ElgbVtr-250-low.csv";    
+#my $inputFile 				= "../test-in/nv-state-voter-list-20190218-1.CSV";    
+my $inputFile 				= "../prod-in1/nv-washoe-voter-20190219.csv";
+#my $inputFile 				= "../test-in/voter-leans-test.csv";    #
+#my $inputFile 				= "../test-in/2018-3rd Free List.csv";#
+#my $voterStatsFile   = "../prod-in/precinct-voterstat.csv";
+my $voterStatsFile    = "../prod-in1/precinct-voterstat-2019 1st Free List 1.7.19.csv";
+my $voterStatsFileh;
+my $voterEmailFile    = "../prod-in1/email-sort.csv";
+my $voterEmailFileh;
+my $adPoliticalFile 	= "../prod-in1/adall-precincts-jul.csv";
 
 my $fileName         = "";
 my $baseFile         = "base.csv";
@@ -47,11 +51,6 @@ my $votingFile       = "voting.csv";
 my $votingFileh;
 my %votingLine       = ();
 my %politicalLine       = ();
-#my $voterStatsFile    = "../prod-in/precinct-voterstat.csv";
-my $voterStatsFile    = "precinct-voterstat-250-low.csv";
-my $voterStatsFileh;
-my $voterEmailFile    = "../prod-in/email-sort.csv";
-my $voterEmailFileh;
 
 
 my @adPoliticalHash = ();
