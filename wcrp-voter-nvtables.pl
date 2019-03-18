@@ -30,14 +30,14 @@ no warnings "uninitialized";
 
 my $records;
 #my $inputFile 				= "../test-in/2019.nv.VoterList.ElgbVtr-250-low.csv";    
-#my $inputFile 				= "../test-in/nv-state-voter-list-20190218-1.CSV";    
-my $inputFile 				= "../prod-in1/nv-washoe-voter-20190219.csv";
+my $inputFile 				= "../test-in/2019.nv.VoterList.ElgbVtr.CSV";    
+#my $inputFile 				= "../prod-in1/nv-washoe-voter-20190219.csv";
 #my $inputFile 				= "../test-in/voter-leans-test.csv";    #
 #my $inputFile 				= "../test-in/2018-3rd Free List.csv";#
 #my $voterStatsFile   = "../prod-in/precinct-voterstat.csv";
-my $voterStatsFile    = "../prod-in1/precinct-voterstat-2019 1st Free List 1.7.19.csv";
+my $voterStatsFile    = "../prod-in1/sorted-extracts.csv";
 my $voterStatsFileh;
-my $voterEmailFile    = "../prod-in1/email-sort.csv";
+my $voterEmailFile    = "../prod-in1/email.csv";
 my $voterEmailFileh;
 my $adPoliticalFile 	= "../prod-in1/adall-precincts-jul.csv";
 
@@ -159,7 +159,6 @@ my $baseLine;
 my @baseProfile;
 my $baseHeading = "";
 my @baseHeading = (
-  "_key",
 	"Voter ID",       "State ID",     
 	"Status",        	"Precinct", 
 	"Asm dist",       "Sen dist",
@@ -406,7 +405,6 @@ sub main {
 			     $voterEmailArray[$stats][1] eq $ccfirstName) {
     			 	$calastName 				= $voterEmailArray[$stats][0];	
     				$cafirstName 				= $voterEmailArray[$stats][1];
-    				$camiddleName 			= $voterEmailArray[$stats][2];
     				$caemail 						= $voterEmailArray[$stats][4];
  		 				$baseLine{"email"}  = $voterEmailArray[$stats][4];
  		 				$capoints 					= $voterEmailArray[$stats][7];
@@ -420,7 +418,6 @@ sub main {
 					  $emailLine{"Precinct"} = substr $csvRowHash{"precinct"}, 0, 6;
 						$emailLine{"Last"} = $calastName;
 						$emailLine{"First"} = $cafirstName;
-						$emailLine{"Middle"} = $camiddleName;
 						$emailLine{"email"} = $caemail;
 
 						@emailProfile = ();
