@@ -45,6 +45,9 @@ my $fileName         = "";
 my $baseFile         = "base.csv";
 my $baseFileh;
 my %baseLine         = ();
+my $emailFile         = "emails.csv";
+my $emailFileh;
+my %emailLine         = ();
 my $printFile        = "print-.txt";
 my $printFileh;
 my $votingFile       = "voting.csv";
@@ -176,6 +179,13 @@ my @baseHeading = (
 	"Generals", 			"Primaries",			
 	"Leans",          "Strength",
 );
+my @emailProfile;
+my $emailHeading = "";
+my @emailHeading = (
+	"Voter ID",       "Precinct",     
+  "First",          "Last", 	"Middle",
+	"email",
+);
 
 my @votingLine;
 my $votingLine;
@@ -253,6 +263,10 @@ sub main {
 	# Build heading for new voting record
 	$votingHeading = join( ",", @votingHeading );
 	$votingHeading = $votingHeading . "\n";	
+
+	# Build heading for new voting record
+	$emailHeading = join( ",", @emailHeading );
+	$emailHeading = $emailHeading . "\n";	
 	#
 	# Initialize process loop and open files
 	printLine ("Voter Base-table file: $baseFile\n");
@@ -264,6 +278,11 @@ sub main {
 	open( $votingFileh, ">$votingFile" )
 	  or die "Unable to open votingFileh: $votingFile Reason: $!";
 	print $votingFileh $votingHeading;
+
+	printLine ("Email updated file: $emailFile\n");
+	open( $emailFileh, ">$emailFile" )
+	  or die "Unable to open votingFileh: $emailFile Reason: $!";
+	print $emailFileh $emailHeading;
 
 	# initialize the voter stats array
 	voterEmailLoad(@voterEmailArray);
@@ -378,21 +397,37 @@ sub main {
 		#     0       1         2                4      5          6          7
 		my $calastName;
     my $cafirstName;
+		my $camiddleName;
     my $caemail;
     my $capoints;
 		$stats = binary_ch_search(\@voterEmailArray, $cclastName);
 		if ($stats >= 0) {
 	  	if ( $voterEmailArray[$stats][0] eq $cclastName && 
 			     $voterEmailArray[$stats][1] eq $ccfirstName) {
-    			 	$calastName = $voterEmailArray[$stats][0];	
-    				$cafirstName = $voterEmailArray[$stats][1];
-    				$caemail = $voterEmailArray[$stats][4];
- 		 				$baseLine{"email"}          = $voterEmailArray[$stats][4];
- 		 				$capoints = $voterEmailArray[$stats][7];
-						$capoints =~ s/;/,/g;
+    			 	$calastName 				= $voterEmailArray[$stats][0];	
+    				$cafirstName 				= $voterEmailArray[$stats][1];
+    				$camiddleName 			= $voterEmailArray[$stats][2];
+    				$caemail 						= $voterEmailArray[$stats][4];
+ 		 				$baseLine{"email"}  = $voterEmailArray[$stats][4];
+ 		 				$capoints 					= $voterEmailArray[$stats][7];
+						$capoints 					=~ s/;/,/g;
 						$baseLine{"Contact Points"} =~ s/;/,/g;
-        		printLine (" email added: $calastName $caemail \n");
+        		printLine (" email added: $calastName $camiddleName $caemail \n");
 						$emailAdded = $emailAdded + 1;
+						# build a trace line to show email was updated
+						%emailLine = ();
+						$emailLine{"Voter ID"} = $voterid;
+					  $emailLine{"Precinct"} = substr $csvRowHash{"precinct"}, 0, 6;
+						$emailLine{"Last"} = $calastName;
+						$emailLine{"First"} = $cafirstName;
+						$emailLine{"Middle"} = $camiddleName;
+						$emailLine{"email"} = $caemail;
+
+						@emailProfile = ();
+						foreach (@emailHeading) {
+							push( @emailProfile, $emailLine{$_} );
+						}
+						print $emailFileh join( ',', @emailProfile ), "\n";
 				} 
 		}
 	
@@ -402,9 +437,6 @@ sub main {
 			push( @baseProfile, $baseLine{$_} );
 		}
 		print $baseFileh join( ',', @baseProfile ), "\n";
-#
-#	here are the political segments.
-#
 	
 		$linesWritten++;
 		#
@@ -436,6 +468,7 @@ close(INPUT);
 close($baseFileh);
 close($votingFileh);
 close($printFileh);
+close($emailFileh);
 exit;
 
 
